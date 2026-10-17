@@ -166,6 +166,7 @@
     <ClCompile Include="test_path_prefix_boundary.cpp" />
     <ClCompile Include="test_path_security_unc_bypass.cpp" />
     <ClCompile Include="test_path_security_write_tiers.cpp" />
+    <ClCompile Include="test_path_security_read_rules.cpp" />
     <ClCompile Include="test_path_security_canonical_form.cpp" />
     <ClCompile Include="test_path_security_virtual_protocol.cpp" />
     <ClCompile Include="test_path_security_traversal.cpp" />

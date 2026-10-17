@@ -4,6 +4,7 @@
 // ============================================
 #include "pch.h"
 #include "domain/PathSecurity.h"
+#include "utils/ReadRulesOrder.h"
 
 namespace fs = std::filesystem;
 
@@ -721,11 +722,18 @@ bool PathSecurity::ApplyReadRules(const ResolvedTarget& t, std::wstring& errorMs
     }
     const wchar_t drive = ::towupper(t.path[0]);
     if (drive != systemDrive_) return true;
-    if (IsInBlacklist(t.path)) {
-        errorMsg = L"Access denied: protected system path";
-        return false;
+    // 系统盘上的两条名单的判定顺序见 ReadRulesOrder.h：白名单先判，黑名单退为
+    // 「不在白名单」的兜底。便携安装落在 Program Files 下时 profile 同时命中两份
+    // 名单，黑名单先判会把用户自己的配置目录 (含播放统计库) 一并拒掉。
+    switch (read_rules::Decide(IsInWhitelist(t.path), IsInBlacklist(t.path))) {
+        case read_rules::Decision::Whitelist:
+            return true;
+        case read_rules::Decision::ProtectedPath:
+            errorMsg = L"Access denied: protected system path";
+            return false;
+        case read_rules::Decision::NotInWhitelist:
+            break;
     }
-    if (IsInWhitelist(t.path)) return true;
     errorMsg = L"Access denied: system drive path not in whitelist";
     return false;
 }
