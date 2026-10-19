@@ -341,6 +341,9 @@ namespace {
                 }
                 WriteContent(file, content, encoding);
                 file.close();
+                if (file.fail()) {
+                    return api::Fail("write failed", ApiErrorCode::OPERATION_FAILED);
+                }
             }
             
             // Get written size

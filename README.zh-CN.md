@@ -166,7 +166,7 @@ const result = await fb2k.invoke('my_plugin.doSomething', { param1: 'value' });
 | 全部 API | 页面来源 - 只有宿主信任的页面能调用 API、收到事件：模板文件夹与内置页面、所配置的开发服务器、面板的 URL，以及打开者已信任的弹窗地址；其他页面的调用以 `ORIGIN_DENIED` 失败 |
 | shell.exec / shell.spawn | 无命令/可执行白名单 - 命令按原样执行；`cwd` 与绝对路径经 PathSecurity 校验（信任主题作者，不是 sandbox）|
 | shell.openWith | 黑名单 - 禁止打开 29 种可执行/脚本扩展名（`.exe`、`.bat`、`.ps1`、`.dll`、`.lnk` 等）|
-| file.read/write | 路径限制 - 系统目录（`C:\Windows`、`C:\Program Files`、`C:\ProgramData`）禁止访问；`file.*` 的写入在 foobar2000 配置目录与 `%TEMP%`、媒体库监视目录内、任一非系统盘上，以及媒体库或播放列表里的曲目上放行 |
+| file.read/write | 路径限制 - 系统目录（`C:\Windows`、`C:\Program Files`、`C:\ProgramData`）禁止访问，但 foobar2000 配置目录与 `%TEMP%` 例外：即使便携版把它们放在 Program Files 下，读写仍然放行；`file.*` 的写入在 foobar2000 配置目录与 `%TEMP%`、媒体库监视目录内、任一非系统盘上，以及媒体库或播放列表里的曲目上放行 |
 | http.get/post | SSRF 防护 - 禁止 localhost/私有/链路本地地址（含 DNS 解析后防 rebinding 校验）|
 | CDP 远程调试 | 默认关闭 - 需手动开启，仅绑定 localhost |
 

@@ -24,7 +24,7 @@ Counts are taken from the `@security` and `@pathKey` declarations in `src/api/sc
 | `Write` | Write destinations under the strict write policy | Allowed only under foobar2000 profile / temp destinations enforced by PathSecurity |
 | `MediaRead` | Media metadata/content reads | Read rules first; media-library / playlist trust is a fallback used only when Read rejects the path |
 | `MediaWrite` | Media mutation (tags, lyrics, artwork, counts) | Own chain: protected-directory blacklist, then strict write destination, media-library / playlist membership, media-library watch folders, or a sidecar sharing the directory of a trusted audio file. A non-system drive alone does **not** grant write access |
-| `FileWrite` | General file writes (`file.*`) | Own chain, not a superset of `MediaWrite`: blacklist, then strict write destination, media-library watch folders, non-system drive (drive letter only, UNC excluded), or media-library / playlist membership — no sidecar step. The watch-folder and non-system-drive steps are what let `file.mkdir` and `file.write` create brand-new paths |
+| `FileWrite` | General file writes (`file.*`) | Own chain, not a superset of `MediaWrite`: strict write destination first (profile / temp — it wins over the blacklist so a portable profile under Program Files stays writable), then the protected-directory blacklist, media-library watch folders, non-system drive (drive letter only, UNC excluded), or media-library / playlist membership — no sidecar step. The watch-folder and non-system-drive steps are what let `file.mkdir` and `file.write` create brand-new paths |
 
 ::: tip Level relationships
 `None < Read < Write` forms the ordinary filesystem channel.
@@ -261,9 +261,12 @@ would mean any theme could rewrite arbitrary audio files on `D:` or `E:`.
 
 ### FileWrite
 
-FileWrite runs its own chain and is not a superset of MediaWrite. After the
-common rejections and the protected-directory blacklist, the first of these to
-match admits the path: a strict write destination (profile / temp), a
+FileWrite runs its own chain and is not a superset of MediaWrite. The strict
+write destination (profile / temp) is checked first: a portable install's
+profile can sit under `C:\Program Files`, which is both the write whitelist and
+the blacklist, and the profile has to stay writable. The protected-directory
+blacklist then rejects every path outside that whitelist before the remaining
+steps. After those two, the first of these to match admits the path: a
 media-library watch folder (`is_path_addable` — configuration, not membership,
 so it admits brand-new paths and UNC folders), a non-system drive addressed by
 drive letter (UNC excluded), or media-library / playlist context. MediaWrite's

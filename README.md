@@ -166,7 +166,7 @@ const result = await fb2k.invoke('my_plugin.doSomething', { param1: 'value' });
 | All APIs | Page origin — only pages the host trusts can call the bridge or receive events: template folders and built-in pages, the configured development server, a panel's URL, and popup URLs the opener already trusts. Calls from any other page fail with `ORIGIN_DENIED` |
 | shell.exec / shell.spawn | No command / executable allowlist — commands run as given; `cwd` and absolute paths are validated by PathSecurity (trusts the theme author; this is not a sandbox) |
 | shell.openWith | Blocklist — opening 29 executable / script extensions (`.exe`, `.bat`, `.ps1`, `.dll`, `.lnk`, …) is refused |
-| file.read/write | Path restrictions — system directories (`C:\Windows`, `C:\Program Files`, `C:\ProgramData`) are inaccessible. `file.*` writes are accepted in the foobar2000 config dir and `%TEMP%`, inside media-library watch folders, on any non-system drive, and on library or playlist tracks |
+| file.read/write | Path restrictions — system directories (`C:\Windows`, `C:\Program Files`, `C:\ProgramData`) are inaccessible except the foobar2000 profile (and `%TEMP%`), which stays readable and writable even when a portable install places it under Program Files. `file.*` writes are accepted in the foobar2000 config dir and `%TEMP%`, inside media-library watch folders, on any non-system drive, and on library or playlist tracks |
 | http.get/post | SSRF protection — localhost / private / link-local addresses are blocked (including post-DNS-resolution checks against rebinding) |
 | CDP remote debugging | Off by default — must be enabled manually, bound to localhost only |
 

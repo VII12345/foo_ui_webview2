@@ -42,9 +42,13 @@
 //
 // Mirrored production code (src/domain/PathSecurity.cpp): ValidateMediaWriteAccess,
 // ValidateFileWriteAccess, ValidateMediaAccess, LandingSafeForWrite,
-// LandingSafeForRead and IsOnNonSystemVolume. Whenever the step order of any
-// of these changes, this file must be updated in the same change.
+// LandingSafeForRead and IsOnNonSystemVolume. The FileWrite entry order is not
+// mirrored: RunFileWriteChain calls production write_rules::DecideFileWriteEntry
+// (src/utils/WriteRulesOrder.h), so the whitelist-before-blacklist contract is
+// pinned against the same code PathSecurity uses. Whenever the step order of any
+// of the remaining chains changes, this file must be updated in the same change.
 #include "pch.h"
+#include "../src/utils/WriteRulesOrder.h"
 #include <string>
 #include <cwctype>
 
@@ -98,13 +102,20 @@ Admission RunMediaWriteChain(const Facts& f) {
     return Admission::Denied;
 }
 
-// Reimpl of ValidateFileWriteAccess, in source order. Differs from the media
-// chain by the non-system-volume step, by consulting watch folders ahead of
-// that step instead of after library membership, and by not offering sidecar
-// trust.
+// Entry order of ValidateFileWriteAccess, taken from production
+// write_rules::DecideFileWriteEntry, then the trust sources in source order.
+// Differs from the media chain by the non-system-volume step, by consulting
+// watch folders ahead of that step instead of after library membership, and by
+// not offering sidecar trust.
 Admission RunFileWriteChain(const Facts& f) {
-    if (f.blacklisted) return Admission::BlacklistRejected;
-    if (f.inWriteWhitelist) return Admission::WriteWhitelist;
+    switch (write_rules::DecideFileWriteEntry(f.inWriteWhitelist, f.blacklisted)) {
+        case write_rules::EntryDecision::WriteWhitelist:
+            return Admission::WriteWhitelist;
+        case write_rules::EntryDecision::ProtectedPath:
+            return Admission::BlacklistRejected;
+        case write_rules::EntryDecision::Continue:
+            break;
+    }
     if (f.inTrustedMediaRoots && f.landingSafe()) return Admission::TrustedMediaRoots;
     if (f.onNonSystemVolume) return Admission::NonSystemVolume;
     if (f.inLibraryOrPlaylist && f.landingSafe()) return Admission::LibraryOrPlaylist;
@@ -232,8 +243,30 @@ TEST(PathSecurityWriteTiers, MediaWriteDeniesWhenNoTrustSourceMatches) {
 }
 
 // ============================================
-// Blacklist precedence — must win over every trust source
+// Blacklist precedence — after the write whitelist
 // ============================================
+
+TEST(PathSecurityWriteTiers, FileWriteWhitelistOutranksBlacklistForPortableProfile) {
+    Facts f;
+    // C:\Program Files\foobar2000\profile: the profile is the write whitelist,
+    // Program Files is the blacklist. A portable install in Program Files hits
+    // both, and the profile has to stay writable.
+    f.blacklisted = true;
+    f.inWriteWhitelist = true;
+    EXPECT_EQ(RunFileWriteChain(f), Admission::WriteWhitelist);
+    EXPECT_TRUE(Admitted(RunFileWriteChain(f)));
+}
+
+TEST(PathSecurityWriteTiers, FileWriteBlacklistStillBeatsWatchFolderAndLibraryTrust) {
+    Facts f;
+    f.blacklisted = true;
+    f.inTrustedMediaRoots = true;
+    f.inLibraryOrPlaylist = true;
+    f.objectSpellingTrusted = true;
+    // Outside the write whitelist the blacklist remains the hard ceiling: a
+    // watch folder or playlist entry cannot launder a protected system path.
+    EXPECT_EQ(RunFileWriteChain(f), Admission::BlacklistRejected);
+}
 
 TEST(PathSecurityWriteTiers, BlacklistBeatsEveryMediaWriteTrustSource) {
     Facts f;
@@ -257,6 +290,34 @@ TEST(PathSecurityWriteTiers, BlacklistBeatsNonSystemDriveOnFileWrite) {
     // Reachable when a junction on D: resolves into a protected system
     // directory: the blacklist is evaluated against the resolved path.
     EXPECT_EQ(RunFileWriteChain(f), Admission::BlacklistRejected);
+}
+
+// ============================================
+// write_rules::DecideFileWriteEntry — the production entry order
+// ============================================
+
+TEST(PathSecurityWriteRules, PortableProfileUnderProgramFilesIsWritable) {
+    // The profile and Program Files both match: the profile has to win.
+    EXPECT_EQ(write_rules::DecideFileWriteEntry(/*inWriteWhitelist=*/true, /*inBlacklist=*/true),
+              write_rules::EntryDecision::WriteWhitelist);
+    EXPECT_TRUE(write_rules::IsAdmitted(
+        write_rules::DecideFileWriteEntry(true, true)));
+}
+
+TEST(PathSecurityWriteRules, ProtectedPathsOutsideTheWhitelistAreRefused) {
+    // Windows\, System32\ and ProgramData\ are blacklisted and in no write
+    // whitelist, so they still land on the protected-path step.
+    EXPECT_EQ(write_rules::DecideFileWriteEntry(/*inWriteWhitelist=*/false, /*inBlacklist=*/true),
+              write_rules::EntryDecision::ProtectedPath);
+    EXPECT_TRUE(write_rules::IsRefused(
+        write_rules::DecideFileWriteEntry(false, true)));
+}
+
+TEST(PathSecurityWriteRules, PathsInNeitherListContinueToTrustSources) {
+    EXPECT_EQ(write_rules::DecideFileWriteEntry(/*inWriteWhitelist=*/false, /*inBlacklist=*/false),
+              write_rules::EntryDecision::Continue);
+    EXPECT_FALSE(write_rules::IsAdmitted(
+        write_rules::DecideFileWriteEntry(false, false)));
 }
 
 // ============================================

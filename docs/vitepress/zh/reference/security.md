@@ -55,7 +55,7 @@
 
 ## file.write
 
-`file.write`、`file.delete`、`file.mkdir`、`file.copy` 的目标与 `file.move` 的两端按 `FileWrite` 级别校验。系统目录一律拒绝；除此之外，路径位于 foobar2000 配置目录或临时目录、媒体库监视目录内、任一非系统盘上（按盘符，UNC 路径不算），或是媒体库、播放列表里的曲目时放行。这是主题能用的最宽的写入通道；各级别的完整规则见权限页。
+`file.write`、`file.delete`、`file.mkdir`、`file.copy` 的目标与 `file.move` 的两端按 `FileWrite` 级别校验。系统目录拒绝，但有一个例外：foobar2000 配置目录与临时目录先判且始终可写，即使它们落在黑名单根目录下（便携版 profile 位于 `C:\Program Files` 是常见情况）。除此之外，路径位于媒体库监视目录内、任一非系统盘上（按盘符，UNC 路径不算），或是媒体库、播放列表里的曲目时放行。这是主题能用的最宽的写入通道；各级别的完整规则见权限页。
 
 ## http.get / http.post
 

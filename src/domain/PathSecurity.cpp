@@ -5,6 +5,7 @@
 #include "pch.h"
 #include "domain/PathSecurity.h"
 #include "utils/ReadRulesOrder.h"
+#include "utils/WriteRulesOrder.h"
 
 namespace fs = std::filesystem;
 
@@ -111,11 +112,20 @@ bool PathSecurity::ValidateMediaWriteAccess(const std::wstring& rawPath, std::ws
 bool PathSecurity::ValidateFileWriteAccess(const std::wstring& rawPath, std::wstring& errorMsg) {
     ResolvedTarget t;
     if (!PassBasicPathSafetyChecks(rawPath, t, errorMsg)) return false;
-    if (IsInBlacklist(t.path)) {
-        errorMsg = L"Write access denied: protected system path";
-        return false;
+    // 写白名单先判，理由与 ApplyReadRules 相同：便携安装落在 C:\Program Files\ 下时，
+    // profile 同时命中写白名单 (profile) 与黑名单 (Program Files)。黑名单先判会让
+    // file.* 永远写不了主题自己的 profile 数据。黑名单退为入口的兜底，仍先于后面的
+    // 监视目录/非系统卷/媒体库信任来源；判定对象是 canonical t.path，profile 内指向
+    // 受保护目录的 junction 解析后不在白名单，照旧被拒。
+    switch (write_rules::DecideFileWriteEntry(IsInWriteWhitelist(t.path), IsInBlacklist(t.path))) {
+        case write_rules::EntryDecision::WriteWhitelist:
+            return true;
+        case write_rules::EntryDecision::ProtectedPath:
+            errorMsg = L"Write access denied: protected system path";
+            return false;
+        case write_rules::EntryDecision::Continue:
+            break;
     }
-    if (IsInWriteWhitelist(t.path)) return true;
     try {
         TrustQueryMemo memo;
         const auto s = TrustSpellings(t, rawPath);

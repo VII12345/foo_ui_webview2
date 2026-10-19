@@ -100,7 +100,7 @@ The validation level of a path parameter is part of its declaration: the `@secur
 | `Write` | `ValidateWritePath` | Strict write allowlist (profile / temp directories only) |
 | `MediaRead` | `ValidateMediaAccess` | Read + library/playlist context trust |
 | `MediaWrite` | `ValidateMediaWriteAccess` | Write + media context trust, but arbitrary paths on system drives are not allowed |
-| `FileWrite` | `ValidateFileWriteAccess` | Write whitelist -> watch folders -> non-system-drive pass-through -> library/playlist trust, in that order; carries the general `file.*` write endpoints |
+| `FileWrite` | `ValidateFileWriteAccess` | Write whitelist (profile / temp; wins over the system-directory blacklist) -> blacklist -> watch folders -> non-system-drive pass-through -> library/playlist trust, in that order; carries the general `file.*` write endpoints |
 
 Declaration example (from `schema/file.ts`, where each parameter specifies its own level):
 

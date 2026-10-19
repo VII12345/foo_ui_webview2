@@ -55,7 +55,7 @@ Non-system drives are generally allowed for NAS / portable layouts.
 
 ## file.write
 
-`file.write`, `file.delete`, `file.mkdir`, the destination of `file.copy` and both ends of `file.move` are checked at the `FileWrite` level. System directories are always refused. Past that, a path is accepted when it is in the foobar2000 profile or temporary directory, inside a media-library watch folder, anywhere on a non-system drive (a drive letter; a UNC path does not count), or when it is a library or playlist track. This is the widest write channel a theme has; the permissions page lists every level.
+`file.write`, `file.delete`, `file.mkdir`, the destination of `file.copy` and both ends of `file.move` are checked at the `FileWrite` level. System directories are refused, with one exception: the foobar2000 profile and temporary directory are checked first and stay writable even when they sit under a blacklisted root (a portable profile under `C:\Program Files` is the common case). Past that, a path is accepted when it is inside a media-library watch folder, anywhere on a non-system drive (a drive letter; a UNC path does not count), or when it is a library or playlist track. This is the widest write channel a theme has; the permissions page lists every level.
 
 ## http.get / http.post
 

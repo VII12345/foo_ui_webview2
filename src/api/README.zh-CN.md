@@ -98,7 +98,7 @@ handler 失败时返回 `api::Fail(message, code[, extra])`（`ApiResult.h`）�
 | `Write` | `ValidateWritePath` | 严格写白名单（仅 profile / temp 目录） |
 | `MediaRead` | `ValidateMediaAccess` | 读 + 媒体库/播放列表上下文信任 |
 | `MediaWrite` | `ValidateMediaWriteAccess` | 写 + 媒体上下文信任，但系统盘任意路径不放行 |
-| `FileWrite` | `ValidateFileWriteAccess` | 写白名单 → 监视目录 → 非系统盘直通 → 库/列表信任（按此顺序）；承载 `file.*` 通用写端点 |
+| `FileWrite` | `ValidateFileWriteAccess` | 写白名单（profile / temp，先于系统目录黑名单）→ 黑名单 → 监视目录 → 非系统盘直通 → 库/列表信任（按此顺序）；承载 `file.*` 通用写端点 |
 
 声明示例（来自 `schema/file.ts`，多参数各自指定层级）：
 
