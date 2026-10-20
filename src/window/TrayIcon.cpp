@@ -860,6 +860,10 @@ LRESULT TrayIcon::HandleTrayCallback(WPARAM /*wParam*/, LPARAM lParam) {
             ShowContextMenu();
             break;
         case WM_LBUTTONDBLCLK:
+            // 双击托盘图标恢复主窗口。必须原生执行：收进托盘时渲染器被
+            // put_IsVisible(FALSE) + TrySuspend 冻结，页面侧监听收到事件也跑不起来。
+            // 复用"显示主窗口"菜单项同一个权威入口；已可见时 activate() 只置前。
+            RestoreMainWindowNatively();
             if (m_doubleClickCb) m_doubleClickCb(x, y);
             break;
     }
